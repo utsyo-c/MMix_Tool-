@@ -3,7 +3,6 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from datetime import datetime,timedelta
-import plotly.express as px
 import warnings
 
 
@@ -238,10 +237,8 @@ def eda_sales_trend(uploaded_file):
                 'Total': filtered_df.sum()
             }
             )
-            # subtotal_df['Total'] = subtotal_df['Total'].apply(lambda x: f"{x:,}")
-
-            styled_df = subtotal_df.style.format({"Total": "{:,}"})
-            st.dataframe(styled_df)
+            subtotal_df = subtotal_df['Total'].apply(lambda x: f"{x:,}")
+            st.dataframe(subtotal_df)
 
             #Correlation Matrix
             st.subheader("Correlation Matrix")
@@ -251,23 +248,16 @@ def eda_sales_trend(uploaded_file):
             st.pyplot(fig)
 
             #Metric to visualize
-            # Metric to visualize
             st.subheader("Trend visualization")
 
             # Allow only numeric columns for visualization
             numeric_cols = df.select_dtypes(include='number').columns.tolist()
-            numeric_cols = [item for item in numeric_cols if item not in ['Month', 'Year']]
 
             if not numeric_cols:
                 st.warning("No numeric columns available for visualization.")
                 return
 
-            # Allow multiple column selection
-            visualize_columns = st.multiselect("Select Data to visualize", numeric_cols)
-
-            if not visualize_columns:
-                st.warning("Please select at least one metric to visualize.")
-                return
+            visualize_column = st.selectbox("Select Data to visualize", numeric_cols)
 
             # Aggregation Option
             aggregation_level = st.selectbox("Select Aggregation Level", ["Weekly", "Monthly"])
@@ -276,42 +266,25 @@ def eda_sales_trend(uploaded_file):
             if date_column not in df.columns or geo_column not in df.columns:
                 st.warning("Date or Geo column is not properly selected.")
                 return
-
+            
             try:
-                # Group by time and sum over selected columns
                 if aggregation_level == "Weekly":
-                    visualize_trend_time = df.groupby(pd.Grouper(key=date_column, freq='W'))[visualize_columns].sum().reset_index()
+                    visualize_trend_time = df.groupby(pd.Grouper(key=date_column, freq='W'))[visualize_column].sum().reset_index()
                 else:
-                    visualize_trend_time = df.groupby(pd.Grouper(key=date_column, freq='M'))[visualize_columns].sum().reset_index()
+                    visualize_trend_time = df.groupby(pd.Grouper(key=date_column, freq='M'))[visualize_column].sum().reset_index()
 
-                # Keep date column as datetime and format x-axis in Plotly
-                st.subheader(f"Trend of {', '.join(visualize_columns)} ({aggregation_level})")
+                # Grouping by Geo as well
+                visualize_trend_geo = df.groupby([pd.Grouper(key=date_column, freq='M'), geo_column])[visualize_column].sum().reset_index()
 
-                # Melt dataframe for Plotly (long format: one row per date/metric/value)
-                trend_long = visualize_trend_time.melt(id_vars=date_column, value_vars=visualize_columns, 
-                                                    var_name="Metric", value_name="Value")
-
-                # Create the Plotly line chart
-                fig = px.line(
-                    trend_long,
-                    x=date_column,
-                    y="Value",
-                    color="Metric",
-                    markers=True,
-                    title=f"{' & '.join(visualize_columns)} Trend ({aggregation_level})",
-                    labels={
-                        date_column: "Time",
-                        "Value": "Value",
-                        "Metric": "Metric"
-                    }
-                )
-
-                fig.update_layout(
-                    xaxis_tickangle=45,
-                    xaxis=dict(tickformat="%b-%Y") if aggregation_level == "Monthly" else {}
-                )
-
-                st.plotly_chart(fig, use_container_width=True)
+                # Plot time trend
+                st.subheader(f"{visualize_column} Trend ({aggregation_level})")
+                fig, ax = plt.subplots()
+                sns.lineplot(data=visualize_trend_time, x=date_column, y=visualize_column, marker='o', ax=ax)
+                ax.set_xlabel("Time")
+                ax.set_ylabel(f"Total {visualize_column}")
+                ax.set_title(f"{visualize_column} Trend ({aggregation_level})")
+                plt.xticks(rotation=45)
+                st.pyplot(fig)
 
             except Exception as e:
                 st.error(f"An error occurred while plotting: {e}")

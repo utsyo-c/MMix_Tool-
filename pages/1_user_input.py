@@ -80,7 +80,28 @@ def user_input(date_column, geo_column, df):
         key="editable_table"
     )
 
+   
+
+   
+    
+
+    # Post-processing logic
+    for i, row in edited_df.iterrows():
+        if row["Saturation Function"] == "Log":
+            edited_df.at[i, "Power (k)"] = None  # or some ignored flag like np.nan
+
+    # Optionally display a note
+    if "Log" in edited_df["Saturation Function"].values:
+        st.warning("Note: For channels using the 'Log' saturation function, 'Power (k)' will be ignored.")
+
+
+
+
     if st.button("Process Data"):
+
+        # # Append both summary and coefficients
+        st.session_state['configuration_list'].append(edited_df)
+
         st.write("Final Inputs Received:")
         st.write(edited_df)
 
@@ -95,6 +116,12 @@ def user_input(date_column, geo_column, df):
 
 # Run the Streamlit app
 if __name__ == '__main__':
+
+
+    if 'configuration_list' not in st.session_state:
+        st.session_state['configuration_list'] = []    #Store regression outputs as a list in session state to preserve multiple versions
+
+
     st.title("User Input Interface")
 
     if 'date_column' in st.session_state and 'geo_column' in st.session_state and 'granular_df' in st.session_state :

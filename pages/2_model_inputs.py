@@ -3,35 +3,54 @@ import pandas as pd
 import numpy as np
 import statsmodels.api as sm
 
-def modeling_input(date_column, geo_column, df):
-    # Columns to exclude from selection
-    remove_cols = [date_column, geo_column, 'Sales']
+
+def modeling_input(date_column, geo_column, df, dependent_variable):
+    # Convert date column to datetime if not already
+    df[date_column] = pd.to_datetime(df[date_column])
+
+    # Year selector
+    years = df[date_column].dt.year.unique()
+    #selected_year = st.selectbox("Select year to model on", sorted(years), key="year_selector")
+    selected_year = st.multiselect("Select year(s) to model on", sorted(years), default=sorted(years), key="year_selector")
+    # Filter by selected year
+    df_year_filtered = df[df[date_column].dt.year.isin(selected_year)]
+
+    # Get available channels
+    remove_cols = [date_column, geo_column, dependent_variable]
     available_channels = [
-        col for col in df.drop(columns=remove_cols).columns
+        col for col in df_year_filtered.drop(columns=remove_cols).columns
         if col.endswith('_transformed')
     ]
 
-    # User selects channels
-    selected_channels = st.multiselect("Select channels to model on", available_channels)
+    # Channel selector
+    selected_channels = st.multiselect(
+        "Select channels to model on", 
+        available_channels, 
+        key="channel_selector"
+    )
 
     if selected_channels:
         selected_channels_df = pd.DataFrame({'Channel Name': selected_channels})
-        # Shift index to start from 1
         selected_channels_df.index = np.arange(1, len(selected_channels_df)+1)
 
-        if st.button("Enter"):
-            st.success("Channels Received:")
-            st.dataframe(selected_channels_df)
+        # Filter df for modeling
+        filtered_df = df_year_filtered[[date_column, geo_column, dependent_variable] + selected_channels]
 
-            # Filter df to selected channels + essential columns
-            filtered_df = df[[date_column, geo_column, 'Sales'] + selected_channels]
+        # Update session state
+        st.session_state['selected_channels_df'] = selected_channels_df
+        st.session_state['filtered_df'] = filtered_df
+        st.session_state['selected_channels'] = selected_channels
+        st.session_state['selected_year'] = selected_year
 
-            # Save to session state
-            st.session_state['selected_channels_df'] = selected_channels_df
-            st.session_state['filtered_df'] = filtered_df
-            st.session_state['selected_channels'] = selected_channels  # Save names too
+        clean_years = [int(y) for y in selected_year]
+        year_str = ", ".join(map(str, sorted(clean_years)))
+        st.success(f"Filtered data for year(s): {year_str}")
 
-            return selected_channels_df
+        st.dataframe(selected_channels_df)
+
+        st.success(f'Total Sales for the selected years: {filtered_df[dependent_variable].sum()}')
+
+        return selected_channels_df
 
     return None
 
@@ -55,7 +74,7 @@ def run_regression(dependent_variable):
 
     # Display the OLS regression summary
     st.subheader("OLS Regression Results")
-    st.text(regression_summary)
+    st.code(regression_summary,language ='text')
 
     # --- ADDITIONAL SUMMARY COMPUTATIONS ---
     st.subheader("Model Summary Table")
@@ -76,7 +95,7 @@ def run_regression(dependent_variable):
 
     # Save regression output to session state
     if 'regression_outputs' not in st.session_state:
-        st.session_state['regression_outputs'] = []
+        st.session_state['regression_outputs'] = []    #Store regression outputs as a list in session state to preserve multiple versions
 
     # Append both summary and coefficients
     st.session_state['regression_outputs'].append({
@@ -96,7 +115,7 @@ if __name__ == '__main__':
         transformed_df = st.session_state['transformed_df']
         dependent_variable = st.session_state['dependent_variable']
 
-        selected_channels_df = modeling_input(date_column, geo_column, transformed_df)
+        selected_channels_df = modeling_input(date_column, geo_column, transformed_df, dependent_variable)
 
         # Show filtered_df if it's available
         if 'filtered_df' in st.session_state:

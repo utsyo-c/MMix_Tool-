@@ -10,9 +10,10 @@ import streamlit as st
 import plotly.express as px
 import re
 
-# Global constants
-num_time = 12
-num_geo = 2614
+# Global constants - to change!! 
+num_time = 12 #number of months 
+num_geo = 2614  # number of bricks [geo_id.nunique()] 
+# To fetch from dummy data 
 
 # Set page config
 st.set_page_config(page_title="Response Curves", layout="centered")
@@ -22,9 +23,9 @@ st.title("Response Curve Viewer")
 # Function Definitions
 # ----------------------------------------------------------------------------------------------------
 
-def calc_calibration_factor(impactable_sales_nation, beta_coeff, spend_nation):
+def calc_calibration_factor(impactable_sales_nation, beta_coeff, spend_nation):   #to fetch choice of function  
     calib_factor = (impactable_sales_nation / (num_time * num_geo)) / (
-        beta_coeff * np.log(1 + (spend_nation / (num_time * num_geo))))
+        beta_coeff * np.log(1 + (spend_nation / (num_time * num_geo))))   
     return calib_factor
 
 
