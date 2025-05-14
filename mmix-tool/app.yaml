@@ -1,0 +1,10 @@
+# name: mmix-tool
+
+# artifacts:
+#   - app_v2.py               # Python file containing your Streamlit app
+
+# env:
+#   python: 3.10              # Python version Databricks Apps currently supports
+#   requirements: requirements.txt  # Your package list
+
+command: ['streamlit', 'run', 'mmix_tool_eda.py'] # What Databricks runs to launch the app

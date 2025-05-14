@@ -257,7 +257,7 @@ def user_input(date_column, geo_column, df):
 
             # Apply formatting only to numeric columns
             format_dict = {col: "{:,.2f}" for col in transformed_df.select_dtypes(include='number').columns}
-            styled_df = transformed_df.head(50).style.format(format_dict)
+            styled_df = transformed_df.style.format(format_dict)
             st.write(styled_df)
             #st.dataframe(transformed_df)
 
@@ -291,7 +291,7 @@ if __name__ == '__main__':
 
         # Apply formatting only to numeric columns
         format_dict = {col: "{:,.2f}" for col in df_raw.select_dtypes(include='number').columns}
-        styled_df = df_raw.head(50).style.format(format_dict)
+        styled_df = df_raw.style.format(format_dict)
         st.write(styled_df)
 
         st.write(f"Do you want to have a lagged version of the dependent variable - ({dependent_variable})?")

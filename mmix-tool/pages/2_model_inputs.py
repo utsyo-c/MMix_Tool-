@@ -224,7 +224,7 @@ if __name__ == '__main__':
 
             df = st.session_state['transformed_df_channel_filtered']
             format_dict = {col: "{:,.2f}" for col in df.select_dtypes(include='number').columns}
-            styled_df = df.head(50).style.format(format_dict)
+            styled_df = df.style.format(format_dict)
             st.write(styled_df)
             #st.dataframe(st.session_state['transformed_df_channel_filtered'])
 

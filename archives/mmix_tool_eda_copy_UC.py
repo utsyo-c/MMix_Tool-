@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import warnings
 import seaborn as sns
 import matplotlib.pyplot as plt
 from datetime import datetime,timedelta
@@ -185,189 +186,6 @@ def modify_granularity(geo_column,date_column,granularity_level_df,granularity_l
         return df, 'month_date'
 
 
-# ------------------------------------------------------------------------------
-
-
-#   Perform EDA for channels
-# def eda_sales_trend(uploaded_file):
-
-#     if uploaded_file is not None:
-#         # Read CSV File
-#         df = pd.read_csv(uploaded_file)
-#         st.write("### Preview of Uploaded CSV")
-#         st.dataframe(df.head(100))
-
-#         # Let user select columns
-#         st.subheader("Select Columns")
-#         dependent_variable = st.selectbox("Select Dependent Variable", [None] + list(df.columns), index=0 )
-#         geo_column = st.selectbox("Select Modeling Granularity Column", [None] + list(df.columns), index=0)
-#         date_column = st.selectbox("Select Date Column", [None] + list(df.columns), index=0)
-
-#         if geo_column is not None:
-#             num_geo = df[geo_column].nunique()
-#             st.success(f"Number of unique entries in granularity column: {num_geo}")
-        
-#         # Time granularity detection
-#         if date_column is not None:
-#             time_granularity = detect_date_granularity(df, date_column )
-#             st.write(f' The time granularity is : {time_granularity} ')
-        
-#             # Convert to datetime format
-#             df[date_column] = pd.to_datetime(df[date_column])
-#             df = df.dropna(subset=[date_column])
-
-#             df_copy = df   #Original dataframe
-           
-#             # Set up date range filtering
-#             min_date = df[date_column].min()
-#             max_date = df[date_column].max()
-
-#             # Convert to datetime.date if needed
-#             min_date = pd.to_datetime(min_date).date()
-#             max_date = pd.to_datetime(max_date).date()
-
-#             # Side-by-side date selectors
-#             col1, col2 = st.columns(2)
-#             with col1:
-#                 start_date = st.date_input(
-#                     "Start Date",
-#                     value=min_date,
-#                     min_value=min_date,
-#                     max_value=max_date,
-#                     key="start_date"
-#                 )
-#             with col2:
-#                 end_date = st.date_input(
-#                     "End Date",
-#                     value=max_date,
-#                     min_value=min_date,
-#                     max_value=max_date,
-#                     key="end_date"
-#                 )
-
-#             # Validate selected dates
-#             if start_date > end_date:
-#                 st.warning("⚠️ Start date must be before or equal to end date.")
-#                 st.stop()
-
-#             # Filter the DataFrame based on selected range
-#             df = df[(df[date_column] >= pd.to_datetime(start_date)) & (df[date_column] <= pd.to_datetime(end_date))]
-
-
-#             # Handle case when only one date or empty data
-#             if df.empty:
-#                 st.warning("No data available for the selected date range. Please choose a broader range.")
-#                 st.stop()
-
-#             if (pd.to_datetime(start_date) == pd.to_datetime(end_date)):
-#                 st.warning("Start and end dates are the same. Please select a wider date range for meaningful analysis.")
-#                 st.stop()
-
-#             # Control totals    
-#             st.subheader("Control Totals")
-
-#             remove_cols = [date_column, geo_column,'Month', 'Year']
-#             filtered_df = df.drop(columns=remove_cols)
-
-#             subtotal_df = pd.DataFrame({
-#                 'Channel': filtered_df.columns,
-#                 'Total': filtered_df.sum()
-#             }
-#             )
-#             # subtotal_df['Total'] = subtotal_df['Total'].apply(lambda x: f"{x:,}")
-
-#             styled_df = subtotal_df.style.format({"Total": "{:,}"})
-#             st.dataframe(styled_df)
-
-#             # Correlation Matrix
-#             st.subheader("Correlation Matrix")
-#             corr_matrix = filtered_df.corr()
-#             fig = sns.heatmap(corr_matrix, annot=False, cmap="coolwarm", linewidths=0.5).get_figure()
-#             # Display in Streamlit
-#             st.pyplot(fig)
-
-#             #Metric to visualize
-#             # Metric to visualize
-#             st.subheader("Trend visualization")
-
-#             # Allow only numeric columns for visualization
-#             numeric_cols = df.select_dtypes(include='number').columns.tolist()
-#             numeric_cols = [item for item in numeric_cols if item not in ['Month', 'Year']]
-
-#             if not numeric_cols:
-#                 st.warning("No numeric columns available for visualization.")
-#                 return
-
-#             # Allow multiple column selection
-#             visualize_columns = st.multiselect("Select Data to visualize", numeric_cols)
-
-#             if not visualize_columns:
-#                 st.warning("Please select at least one metric to visualize.")
-#                 return
-
-#             # Aggregation Option
-#             aggregation_level = st.selectbox("Select Aggregation Level", ["Weekly", "Monthly"])
-
-#             # Check if the date_column and geo_column are valid
-#             if date_column not in df.columns or geo_column not in df.columns:
-#                 st.warning("Date or Geo column is not properly selected.")
-#                 return
-
-#             try:
-#                 # Group by time and sum over selected columns
-#                 if aggregation_level == "Weekly":
-#                     visualize_trend_time = df.groupby(pd.Grouper(key=date_column, freq='W'))[visualize_columns].sum().reset_index()
-#                 else:
-#                     visualize_trend_time = df.groupby(pd.Grouper(key=date_column, freq='M'))[visualize_columns].sum().reset_index()
-
-#                 # Keep date column as datetime and format x-axis in Plotly
-#                 st.subheader(f"Trend of {', '.join(visualize_columns)} ({aggregation_level})")
-
-#                 # Melt dataframe for Plotly (long format: one row per date/metric/value)
-#                 trend_long = visualize_trend_time.melt(id_vars=date_column, value_vars=visualize_columns, 
-#                                                     var_name="Metric", value_name="Value")
-
-#                 # Create the Plotly line chart
-#                 fig = px.line(
-#                     trend_long,
-#                     x=date_column,
-#                     y="Value",
-#                     color="Metric",
-#                     markers=True,
-#                     title=f"{' & '.join(visualize_columns)} Trend ({aggregation_level})",
-#                     labels={
-#                         date_column: "Time",
-#                         "Value": "Value",
-#                         "Metric": "Metric"
-#                     }
-#                 )
-
-#                 fig.update_layout(
-#                     xaxis_tickangle=45,
-#                     xaxis=dict(tickformat="%b-%Y") if aggregation_level == "Monthly" else {}
-#                 )
-
-#                 st.plotly_chart(fig, use_container_width=True)
-
-#             except Exception as e:
-#                 st.error(f"An error occurred while plotting: {e}")
-
-#             # Rolling up data granularity
-#             st.subheader("Creating Integrated Analytics Database")
-
-#             if time_granularity == 'Daily':
-#                 options = ['Weekly','Monthly']
-#             elif time_granularity == 'Weekly':
-#                 options = ['Weekly','Monthly']
-#             elif time_granularity == 'Monthly':
-#                 options=['Monthly']
-
-#             time_granularity_user_input = st.selectbox('Choose the time granularity level',options)
-
-#             st.write('You selected time granularity: ',time_granularity_user_input)
-
-#             return geo_column,date_column, dependent_variable, time_granularity,time_granularity_user_input,df_copy
-            
 def eda_sales_trend(uploaded_file):
 
     if uploaded_file is not None:
@@ -532,3 +350,37 @@ def eda_sales_trend(uploaded_file):
 
             return geo_column, date_column, dependent_variable, time_granularity, time_granularity_user_input, df_copy
 
+
+
+if __name__=='__main__':
+
+    warnings.filterwarnings('ignore')
+    
+    # Streamlit App
+    st.title("Exploratory Data Analysis")
+
+    if "uploaded_file_df" not in st.session_state:  
+        
+        # Upload CSV File
+        uploaded_file = st.file_uploader("Upload CSV File", type=["csv"])
+
+        if uploaded_file:
+            # Call the EDA function
+            result = eda_sales_trend(uploaded_file)
+            
+            if result:
+                geo_column, date_column, dependent_variable, granularity_level_df, granularity_level_user_input, df = result
+                # Modifying granularity
+                granular_df,date_column = modify_granularity(geo_column, date_column, granularity_level_df, granularity_level_user_input, df)
+
+                if "dataframe" not in st.session_state:
+                    st.session_state["dataframe"] = pd.DataFrame()
+                
+                st.session_state["dataframe"] = st.dataframe(granular_df)
+                st.session_state["date_column"] = date_column
+                st.session_state["geo_column"] = geo_column
+                st.session_state['granular_df'] = granular_df
+                st.session_state['dependent_variable'] = dependent_variable
+                st.session_state['granularity_level_user_input'] = granularity_level_user_input
+        else:
+            st.warning("No file has been uploaded")
